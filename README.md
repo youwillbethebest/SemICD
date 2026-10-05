@@ -46,8 +46,8 @@ MIMIC and UMLS must be obtained under their own access agreements.
 | --- | --- | --- |
 | Labels | Diagnoses | Diagnoses and procedures |
 | Notes and splits | [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility) MIMIC-IV v2.2 | Edin et al. MIMIC-III v1.4 |
-| Code hierarchy | CDC/NCHS FY2020 files (FY2015 optional) | Local catalog and path exports |
-| Synonyms | Your licensed UMLS `MRCONSO.RRF` | Local UMLS term export |
+| Code hierarchy | CDC/NCHS FY2020 files (FY2015 optional) | [GKI-ICD](https://github.com/xuzhang0112/GKI-ICD) hierarchy files |
+| Synonyms | Your licensed UMLS `MRCONSO.RRF` | UMLS `MRCONSO.RRF` |
 
 > [!IMPORTANT]
 > Keep every label. For MIMIC-IV, set `MIN_TARGET_COUNT = 1` in Edin et al.'s [`prepare_mimiciv.py`](https://github.com/JoakimEdin/medical-coding-reproducibility/blob/main/prepare_data/prepare_mimiciv.py).
