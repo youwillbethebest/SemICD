@@ -23,81 +23,76 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e '.[train]'
 ```
 
-Training needs Linux and an NVIDIA GPU with bfloat16 support; see the [Unsloth guide](https://unsloth.ai/docs/get-started/install) for a matching PyTorch build.
+Training needs Linux and an NVIDIA GPU with bfloat16 support. See the [Unsloth guide](https://unsloth.ai/docs/get-started/install) for a matching PyTorch build.
 
 <details>
-<summary>Quick check on synthetic data (no MIMIC or UMLS needed)</summary>
+<summary>Quick check on synthetic data</summary>
+
+This runs training and evaluation on invented data with a tiny model. No MIMIC or UMLS is needed.
 
 ```bash
-python examples/synthetic/make_model.py
-semicd prepare-training --train-file examples/synthetic/train.jsonl \
-  --profiles-file examples/synthetic/profiles.jsonl \
-  --sid-bundle examples/synthetic/bundle --output-dir artifacts/tiny-training
-semicd train --model-name-or-path "$PWD/artifacts/tiny-model" \
-  --train-file artifacts/tiny-training/train.jsonl \
-  --validation-file examples/synthetic/validation.jsonl \
-  --max-seq-length 256 --max-new-tokens 12 --gradient-accumulation-steps 8 \
-  --epochs 2 --learning-rate 0.01 --no-gradient-checkpointing \
-  --output-dir artifacts/tiny-run
-semicd evaluate --checkpoint artifacts/tiny-run \
-  --eval-file examples/synthetic/validation.jsonl --output-dir artifacts/tiny-reloaded
+bash examples/synthetic/run.sh artifacts/synthetic-check
 ```
 
-To run the complete walkthrough and verify the saved checkpoint, use
-`bash examples/synthetic/run.sh artifacts/synthetic-walkthrough` from an activated
-training environment on an NVIDIA GPU. Use a fresh output directory each time.
-The fixture is a plumbing check; its metrics do not measure medical coding quality.
-The reused Python 3.12 training environment's package versions are recorded in
-`examples/synthetic/constraints.txt`; the tested PyTorch build is `2.10.0+cu128`.
-This version record is not a verification of a fresh dependency installation.
+It checks the plumbing only; its metrics say nothing about coding quality. Tested package versions are in `examples/synthetic/constraints.txt`.
 
 </details>
 
 ## Data
 
-You need four inputs. ICD-9 Full uses diagnosis and procedure labels; ICD-10-CM uses diagnosis labels. MIMIC and UMLS must be obtained under their own access agreements.
+MIMIC and UMLS must be obtained under their own access agreements.
 
-| Input | Source |
-| --- | --- |
-| Notes | MIMIC-III v1.4 or MIMIC-IV v2.2, prepared with [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility) |
-| Splits | Edin et al.'s released split table |
-| ICD ontology | JSONL, one path per code |
-| UMLS terms | JSON, code → list of terms |
+| | MIMIC-IV (ICD-10-CM) | MIMIC-III (ICD-9 Full) |
+| --- | --- | --- |
+| Labels | Diagnoses | Diagnoses and procedures |
+| Notes and splits | [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility) MIMIC-IV v2.2 | Edin et al. MIMIC-III v1.4 |
+| Code hierarchy | CDC/NCHS FY2020 files (FY2015 optional) | Local catalog and path exports |
+| Synonyms | Your licensed UMLS `MRCONSO.RRF` | Local UMLS term export |
 
 > [!IMPORTANT]
-> Use the **full diagnosis label set**: set `MIN_TARGET_COUNT = 1` in Edin et al.'s [`prepare_mimiciv.py`](https://github.com/JoakimEdin/medical-coding-reproducibility/blob/main/prepare_data/prepare_mimiciv.py).
-
-<details>
-<summary>Input formats</summary>
-
-Codes are uppercase, with no decimal point and leading zeros kept. The notes table needs `_id`, `subject_id`, `text`, and `icd10_diag` (MIMIC-IV) or both `icd9_diag` and `icd9_proc` (ICD-9 Full / MIMIC-III). Splits need `_id` and `split` (`train`, `val`, `test`).
-
-```json
-{"code":"I10","code_system":"ICD-10-CM","edition":"FY2020","billable":true,"chapter":"Diseases of the circulatory system","block":"Hypertensive diseases","category":"Essential hypertension","description":"Essential (primary) hypertension"}
-```
-
-```json
-{"I10": ["Essential (primary) hypertension", "Essential hypertension"]}
-```
-
-</details>
+> Keep every label. For MIMIC-IV, set `MIN_TARGET_COUNT = 1` in Edin et al.'s [`prepare_mimiciv.py`](https://github.com/JoakimEdin/medical-coding-reproducibility/blob/main/prepare_data/prepare_mimiciv.py).
 
 ## Running the pipeline
 
-Set the four input paths, then run the six steps. To generate the ICD-10-CM ontology and UMLS inputs after step 1, see the commands below:
+### Steps 1–2: prepare the dataset and code profiles
+
+**MIMIC-IV (ICD-10-CM)**
 
 ```bash
-NOTES=/path/to/mimiciv_icd10.feather
-SPLITS=/path/to/mimiciv_icd10_split.feather
-ONTOLOGY=/path/to/icd10cm_ontology.jsonl
-UMLS=/path/to/icd10cm_umls_terms.json
 OUT=artifacts/mimiciv
+semicd prepare-dataset --upstream-file /path/to/mimiciv_icd10.feather \
+  --splits-file /path/to/mimiciv_icd10_split.feather --output-dir $OUT/data
+semicd prepare-ontology --codes-file $OUT/data/train_codes.json \
+  --primary-dir /path/to/FY2020 --supplement-dir /path/to/FY2015 --output-dir $OUT/ontology
+semicd prepare-umls --codes-file $OUT/data/train_codes.json \
+  --umls-file /path/to/MRCONSO.RRF --release 2024AA --output-dir $OUT/umls
+semicd prepare-profiles --codes-file $OUT/data/train_codes.json \
+  --ontology-file $OUT/ontology/ontology.jsonl \
+  --umls-terms-file $OUT/umls/umls_terms.json --output-dir $OUT/profiles
+```
 
-# 1. Diagnosis dataset (checked against the paper's Table 1)
-semicd prepare-dataset --upstream-file $NOTES --splits-file $SPLITS --output-dir $OUT/data
-# 2. Code profiles
-semicd prepare-profiles --ontology-file $ONTOLOGY --umls-terms-file $UMLS \
-  --codes-file $OUT/data/train_codes.json --output-dir $OUT/profiles
+**MIMIC-III (ICD-9 Full)**
+
+```bash
+OUT=artifacts/mimiciii
+semicd prepare-dataset --upstream-file /path/to/mimiciii_full.feather \
+  --splits-file /path/to/mimiciii_full_splits.feather --output-dir $OUT/data
+semicd prepare-icd9-inputs --codes-file $OUT/data/train_codes.json \
+  --catalog-file /path/to/structured_profiles.csv --paths-file /path/to/official_paths.csv \
+  --umls-terms-file /path/to/icd_synonyms.json --source-contract /path/to/source_contract.json \
+  --output-dir $OUT/inputs
+semicd prepare-profiles --codes-file $OUT/data/train_codes.json \
+  --ontology-file $OUT/inputs/ontology.jsonl \
+  --umls-terms-file $OUT/inputs/umls_terms.json --output-dir $OUT/profiles
+```
+
+`prepare-dataset` detects the dataset and checks its statistics against the paper. If they do not match, it stops and writes the counts to `$OUT/data/manifest.json`.
+
+### Steps 3–6: build the codebook, train and evaluate
+
+The same commands work for both datasets.
+
+```bash
 # 3. SID codebook (HKM, K=128, L=3, Qwen3-Embedding-4B)
 semicd build-codebook --profiles-file $OUT/profiles/profiles.jsonl --output-dir $OUT/codebook
 # 4. Training tasks: note→SID, profile→SID, SID→profile
@@ -105,13 +100,12 @@ semicd prepare-training --train-file $OUT/data/train.jsonl \
   --profiles-file $OUT/profiles/profiles.jsonl --sid-bundle $OUT/codebook --output-dir $OUT/tasks
 # 5. Train; the best validation checkpoint is kept
 semicd train --model-name-or-path Qwen/Qwen3-0.6B --train-file $OUT/tasks/train.jsonl \
-  --validation-file $OUT/data/validation.jsonl --dataset-manifest $OUT/data/manifest.json \
-  --output-dir $OUT/run
+  --validation-file $OUT/data/validation.jsonl --output-dir $OUT/run
 # 6. Evaluate on the test split
 semicd evaluate --checkpoint $OUT/run --eval-file $OUT/data/test.jsonl --output-dir $OUT/test
 ```
 
-Metrics are written to `$OUT/test/metrics.json`. For ICD-9 Full, prepare the mixed inputs below, then continue from step 3. The dataset is detected automatically. Use `Qwen/Qwen3-4B` for the larger backbone.
+Metrics are written to `$OUT/test/metrics.json`. Use `Qwen/Qwen3-4B` for the larger backbone.
 
 <details>
 <summary>Baselines and ablations</summary>
@@ -136,73 +130,24 @@ semicd train --model-name-or-path Qwen/Qwen3-0.6B --train-file $OUT/data/train.j
   --validation-file $OUT/data/validation.jsonl --sid-bundle $OUT/raw --output-dir $OUT/raw-run
 ```
 
+For ICD-9 Full, add `--max-new-tokens 512` or more to the Raw training command, since its answers are long.
+
 </details>
 
-### Preparing ICD-10-CM inputs
+<details>
+<summary>Input details</summary>
 
-Download and extract the official CDC/NCHS FY2020 order TXT and tabular XML;
-FY2015 is an optional fallback for codes absent from FY2020. Exact filenames and
-source links are in [the source specification](configs/sources/icd10cm.json).
-Use your own licensed UMLS `MRCONSO.RRF` and its actual release identifier:
+**Codes.** Codes are uppercase, with no decimal point and leading zeros kept. ICD-9 Full prefixes each code with its type, so diagnosis `003.1` becomes `DIAG:0031` and procedure `00.31` becomes `PROC:0031`.
 
-```bash
-# Run after prepare-dataset; both commands use the training code catalog.
-semicd prepare-ontology --codes-file "$OUT/data/train_codes.json" \
-  --primary-dir /path/to/extracted/FY2020 --supplement-dir /path/to/extracted/FY2015 \
-  --output-dir "$OUT/ontology"
-semicd prepare-umls --codes-file "$OUT/data/train_codes.json" \
-  --umls-file /path/to/licensed/MRCONSO.RRF --release YOUR_ACTUAL_UMLS_RELEASE \
-  --output-dir "$OUT/umls"
-semicd prepare-profiles --codes-file "$OUT/data/train_codes.json" \
-  --ontology-file "$OUT/ontology/ontology.jsonl" \
-  --umls-terms-file "$OUT/umls/umls_terms.json" --output-dir "$OUT/profiles"
-```
+**Notes table.** It needs `_id`, `subject_id` and `text`, plus `icd10_diag` (MIMIC-IV) or `icd9_diag` and `icd9_proc` (MIMIC-III). The split table needs `_id` and `split` (`train`, `val` or `test`).
 
-`--supplement-dir` is optional and is only used as a fallback for codes absent from the primary ICD-10-CM release. Preparation outputs include provenance and coverage metadata in `manifest.json`, while UMLS-derived terms remain local and are not redistributed.
+**ICD-10-CM sources.** File names and download links are in [`configs/sources/icd10cm.json`](configs/sources/icd10cm.json). FY2015 is only used for codes missing from FY2020.
 
-`prepare-ontology` and MRCONSO `prepare-umls` support ICD-10-CM; ICD-9 Full uses the local-export adapter below. The synthetic pipeline has been verified; real MIMIC end-to-end training and a clean dependency installation have not been verified.
+**ICD-9 Full exports.** The catalog CSV needs `code_norm`, `official_code`, `code_kind` (`diagnosis` or `procedure`), `chapter_text`, `block_text`, `category_text` and `description`. The path CSV needs `code_norm`, `chapter_id`, `block_id`, `category_id` and `leaf_id`. `code_norm` uses typed codes; `official_code` and `leaf_id` use dotted codes. The UMLS JSON maps dotted codes to lists of raw terms. The source contract can record `ontology_edition` and `umls_release`; `{}` is allowed.
 
-### ICD-9 Full
+**Outputs.** Each step writes a `manifest.json` with sources and coverage, and an `issues.json` for codes it could not process. UMLS terms stay on your machine and are not redistributed.
 
-ICD-9 Full uses MIMIC-III diagnosis and procedure labels. This dataset has **8,692
-training-visible labels** (6,724 diagnosis, 1,968 procedure); its full catalog across
-splits contains 8,929 labels. Only training labels enter the codebook. Internally,
-`DIAG:0031` and `PROC:0031` distinguish diagnosis `003.1` from procedure `00.31`.
-Leading zeros are retained. Raw outputs also use these typed keys.
-
-```bash
-OUT=artifacts/mimiciii
-semicd prepare-dataset --dataset mimiciii --label-space mixed \
-  --upstream-file /path/to/mimiciii_full.feather \
-  --splits-file /path/to/mimiciii_split.feather --output-dir "$OUT/data"
-semicd prepare-icd9-inputs --codes-file "$OUT/data/train_codes.json" \
-  --catalog-file /path/to/structured_profiles.csv \
-  --paths-file /path/to/official_paths.csv \
-  --umls-terms-file /path/to/licensed/icd_synonyms.json \
-  --source-contract /path/to/source_contract.json --output-dir "$OUT/inputs"
-semicd prepare-profiles --codes-file "$OUT/data/train_codes.json" \
-  --ontology-file "$OUT/inputs/ontology.jsonl" \
-  --umls-terms-file "$OUT/inputs/umls_terms.json" --output-dir "$OUT/profiles"
-```
-
-The adapter accepts existing local exports: catalog CSV columns `code_norm`,
-`official_code`, `code_kind` (`diagnosis`/`procedure`), `chapter_text`, `block_text`,
-`category_text`, `description`; path CSV columns `code_norm`, `chapter_id`,
-`block_id`, `category_id`, `leaf_id`. `code_norm` uses typed keys; `official_code`
-and `leaf_id` use matching original dotted codes. The raw UMLS JSON maps original
-dotted codes to string lists, **not already selected profile synonyms**.
-
-The source contract may record `ontology_edition` and `umls_release`; missing
-values remain unknown in the manifest, with profile edition `unverified`.
-The adapter validates supplied catalog/path membership and coverage. It does not
-certify an official ontology, infer a source edition, or verify billability;
-ICD-9 profiles use catalog membership instead of the ICD-10-CM billability gate.
-UMLS exports remain local. Missing terms use the existing description fallback.
-Use fresh output directories and inspect `issues.json` and `manifest.json`.
-The local 8,692-code export conversion and synthetic CLI/SID round trips have
-been checked; real clinical preprocessing and ICD-9 model training have not been rerun.
-The prepared dataset manifest must be passed to training with
-`--dataset-manifest "$OUT/data/manifest.json"` (also required for real ICD-10-CM training).
+</details>
 
 ## Code layout
 
@@ -212,7 +157,6 @@ The prepared dataset manifest must be passed to training with
 | `src/semicd/codebook/` | 3: embeddings, HKM / RK-Means / RQ-VAE, SID bundle |
 | `src/semicd/training/` | 4–6: tasks, fine-tuning, constrained decoding, evaluation |
 
-
 ## Acknowledgements
 
-Data preparation follows [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility). The RQ-VAE model is adapted from [LC-Rec](https://github.com/RUCAIBox/LC-Rec), and training uses [Unsloth](https://github.com/unslothai/unsloth). MIMIC, UMLS, and pretrained models remain subject to their own licenses; the code is [MIT-licensed](LICENSE).
+Data preparation follows [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility). The RQ-VAE model is adapted from [LC-Rec](https://github.com/RUCAIBox/LC-Rec), and training uses [Unsloth](https://github.com/unslothai/unsloth). MIMIC, UMLS and pretrained models remain subject to their own licenses; the code is [MIT-licensed](LICENSE).
