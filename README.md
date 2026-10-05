@@ -141,7 +141,7 @@ For ICD-9 Full, add `--max-new-tokens 512` or more to the Raw training command, 
 
 **Notes table.** It needs `_id`, `subject_id` and `text`, plus `icd10_diag` (MIMIC-IV) or `icd9_diag` and `icd9_proc` (MIMIC-III). The split table needs `_id` and `split` (`train`, `val` or `test`).
 
-**ICD-10-CM sources.** File names and download links are in [`configs/sources/icd10cm.json`](configs/sources/icd10cm.json). FY2015 is only used for codes missing from FY2020.
+**ICD-10-CM sources.** File names and download links are in [`configs/sources/icd10cm.json`](configs/sources/icd10cm.json).
 
 **ICD-9 Full exports.** The catalog CSV needs `code_norm`, `official_code`, `code_kind` (`diagnosis` or `procedure`), `chapter_text`, `block_text`, `category_text` and `description`. The path CSV needs `code_norm`, `chapter_id`, `block_id`, `category_id` and `leaf_id`. `code_norm` uses typed codes; `official_code` and `leaf_id` use dotted codes. The UMLS JSON maps dotted codes to lists of raw terms. The source contract can record `ontology_edition` and `umls_release`; `{}` is allowed.
 
