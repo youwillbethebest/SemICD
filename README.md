@@ -45,7 +45,7 @@ MIMIC and UMLS must be obtained under their own access agreements.
 | | MIMIC-IV (ICD-10-CM) | MIMIC-III (ICD-9 Full) |
 | --- | --- | --- |
 | Labels | Diagnoses | Diagnoses and procedures |
-| Notes and splits | [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility) MIMIC-IV v2.2 | Edin et al. MIMIC-III v1.4 |
+| Notes and splits | [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility) MIMIC-IV v2.2 | [Edin et al.](https://github.com/JoakimEdin/medical-coding-reproducibility) MIMIC-III v1.4 |
 | Code hierarchy | CDC/NCHS FY2020 files | [GKI-ICD](https://github.com/xuzhang0112/GKI-ICD) hierarchy files |
 | Synonyms | Your licensed UMLS `MRCONSO.RRF` | UMLS `MRCONSO.RRF` |
 
