@@ -1,0 +1,6 @@
+{"prompt":"synthetic alpha", "codes":["SYN:A"]}
+{"prompt":"synthetic beta", "codes":["SYN:B"]}
+{"prompt":"synthetic gamma", "codes":["SYN:C"]}
+{"prompt":"synthetic alpha beta", "codes":["SYN:A", "SYN:B"]}
+{"prompt":"synthetic beta gamma", "codes":["SYN:B", "SYN:C"]}
+{"prompt":"synthetic alpha gamma", "codes":["SYN:A", "SYN:C"]}

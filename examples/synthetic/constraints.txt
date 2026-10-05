@@ -1,0 +1,19 @@
+# Versions used by the synthetic training check (Python 3.12).
+# CUDA build tested: torch 2.10.0+cu128. Choose a matching PyTorch wheel source.
+# This records the reused environment; a clean dependency installation was not tested.
+torch==2.10.0
+transformers==5.5.0
+unsloth==2026.9.7
+unsloth_zoo==2026.9.6
+peft==0.21.0
+accelerate==1.15.0
+numpy==2.5.3
+pandas==3.0.6
+pyarrow==25.0.1
+scikit-learn==1.9.1
+tokenizers==0.22.2
+safetensors==0.8.0
+bitsandbytes==0.50.2
+triton==3.6.0
+PyYAML==6.0.3
+threadpoolctl==3.6.0

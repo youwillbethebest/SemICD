@@ -1,0 +1,25 @@
+# Data, model outputs and checkpoints (never commit MIMIC or UMLS data)
+/data/
+artifacts/
+outputs/
+checkpoints/
+logs/
+wandb/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+unsloth_compiled_cache/
+
+# Environments and editors
+.env
+.venv/
+.idea/
+.vscode/

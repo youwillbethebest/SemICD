@@ -1,0 +1,24 @@
+{
+  "code_system": "ICD-10-CM",
+  "primary": {
+    "edition": "FY2020",
+    "publisher": "CDC/NCHS",
+    "directory": "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2020/",
+    "files": ["icd10cm_order_2020.txt", "icd10cm_tabular_2020.xml"]
+  },
+  "supplement": {
+    "edition": "FY2015",
+    "publisher": "CDC/NCHS",
+    "directory": "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2015/",
+    "archives": ["ICD10CM_FY2015_code_descriptions.zip", "ICD10CM_FY2015_Full_XML.zip"],
+    "files": ["icd10cm_order_2015.txt", "FY15_Tabular.xml"],
+    "policy": "Only codes absent from the primary order file use this edition."
+  },
+  "umls": {
+    "release": "supplied by user",
+    "input": "licensed local MRCONSO.RRF",
+    "code_matching_sab": "ICD10CM",
+    "language": "ENG",
+    "redistributed": false
+  }
+}

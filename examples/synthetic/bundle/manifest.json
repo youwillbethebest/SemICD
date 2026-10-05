@@ -1,0 +1,12 @@
+{
+  "method": "hkm",
+  "k": 128,
+  "depth": 3,
+  "uid_policy": "deterministic",
+  "code_system": "synthetic",
+  "label_space": "diagnosis",
+  "sid_seed": 0,
+  "embedding_model_name_or_path": "synthetic-no-embedding-model",
+  "synthetic": true,
+  "note": "Hand-authored fixture, not fitted HKM or real ICD data"
+}
