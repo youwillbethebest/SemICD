@@ -20,8 +20,17 @@ PROFILE_TO_SID = """Convert the following disease profile into its Semantic ID. 
 
 SID_TO_PROFILE = """Describe the following Semantic ID using the six fields CHAPTER, BLOCK, CATEGORY, DESCRIPTION, UMLS Terms, and SYNONYMS. The complete Semantic ID identifies exactly one ICD code; output only that code's profile."""
 
-# Raw ICD baseline prompt; only the code system is substituted.
-RAW_NOTE = 'You are an {code_system} coding system. Given the discharge summary, output all supported diagnosis codes in canonical order as <code>CODE1,CODE2</code>. Output no explanation.'
+# Raw ICD baseline prompt from Appendix A.2; code_system is substituted.
+RAW_NOTE = """You are a {code_system} diagnosis coding system.
+
+Given the discharge summary, output the complete set of {code_system} diagnosis codes supported by the document.
+
+Rules:
+- Use only information documented in the discharge summary.
+- Include each code at most once.
+- Separate codes with a comma followed by a space.
+- Do not include code descriptions, explanations, headings, Markdown formatting, or text outside the block.
+- If no diagnosis is supported, return <code></code>."""
 
 
 def paper_messages(task, text, code_system, representation='semantic', raw_prompt=None, label_space='diagnosis'):
