@@ -19,7 +19,7 @@ class TrainConfig:
     max_seq_length: int = 8192
     epochs: int = 6
     batch_size: int = 1
-    gradient_accumulation_steps: int = 0  # 0: 16 for three-task training, 1 for Raw ICD
+    gradient_accumulation_steps: int = 16
     learning_rate: float = 3e-5
     weight_decay: float = 0.0
     adam_beta1: float = 0.9
@@ -46,8 +46,6 @@ class TrainConfig:
         for key in ('model_name_or_path', 'train_file', 'validation_file', 'output_dir'):
             if not getattr(self, key):
                 raise ValueError(f'{key} is required')
-        if self.gradient_accumulation_steps == 0:
-            self.gradient_accumulation_steps = 1 if self.representation == 'raw' else 16
         for key in ('epochs', 'batch_size', 'gradient_accumulation_steps', 'max_seq_length', 'num_beams', 'max_new_tokens', 'eval_batch_size'):
             if getattr(self, key) < 1:
                 raise ValueError(f'{key} must be positive')
